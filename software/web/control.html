@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EEE Rover Control</title>
+  <style>
+    :root {
+      --bg: #020305;
+      --panel: rgba(8, 10, 18, 0.72);
+      --panel-deep: rgba(5, 7, 14, 0.88);
+      --red: #ff4b45;
+      --red-soft: rgba(255, 75, 69, 0.18);
+      --red-line: rgba(255, 75, 69, 0.68);
+      --blue: #20e7ff;
+      --blue-soft: rgba(32, 231, 255, 0.24);
+      --blue-line: rgba(32, 231, 255, 0.86);
+      --gold: #ffde74;
+      --text: #f6f7fb;
+      --muted: rgba(246, 247, 251, 0.62);
+      --dark: rgba(0, 0, 0, 0.58);
+      --bg-y: center;
+      --bg-size: cover;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0) 34%, rgba(0, 0, 0, 0.08) 100%),
+        radial-gradient(circle at 50% 34%, rgba(32, 231, 255, 0.08), transparent 30%),
+        url("assets/control_background.png") center var(--bg-y) / var(--bg-size) fixed no-repeat,
+        #030406;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(32, 231, 255, 0.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent);
+      opacity: 0.18;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 0.08) 64%, rgba(0, 0, 0, 0.22) 100%),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 5px);
+      mix-blend-mode: screen;
+      opacity: 0.1;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--red-line);
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.34), rgba(78, 12, 23, 0.22), rgba(0, 0, 0, 0.2));
+      box-shadow: 0 0 28px rgba(255, 75, 69, 0.16), inset 0 0 24px rgba(255, 75, 69, 0.05);
+      clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(27px, 4.5vw, 52px);
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(32, 231, 255, 0.22), 0 0 18px rgba(255, 75, 69, 0.18);
+    }
+
+    .status-line {
+      margin-top: 8px;
+      color: var(--blue);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(32, 231, 255, 0.62);
+    }
+
+    .connection {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input {
+      height: 46px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 0;
+      background: rgba(75, 75, 78, 0.62);
+      color: var(--text);
+      padding: 0 14px;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.28);
+    }
+
+    input:focus {
+      border-color: var(--blue-line);
+      box-shadow: 0 0 18px rgba(32, 231, 255, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.28);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      align-items: stretch;
+      gap: 20px;
+      min-height: calc(100vh - 166px);
+      margin-top: 20px;
+    }
+
+    main > section.panel {
+      align-self: end;
+      justify-self: start;
+      width: min(790px, 100%);
+      margin-bottom: 0;
+    }
+
+    .panel {
+      position: relative;
+      border: 1px solid var(--red-line);
+      border-radius: 0;
+      background:
+        linear-gradient(180deg, rgba(104, 19, 31, 0.14), rgba(5, 8, 17, 0.2) 46%, rgba(3, 5, 12, 0.28));
+      padding: 18px;
+      box-shadow: 0 0 26px rgba(255, 75, 69, 0.16), inset 0 0 28px rgba(255, 75, 69, 0.05);
+      backdrop-filter: none;
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    }
+
+    .panel::before {
+      position: absolute;
+      top: 48px;
+      right: 12px;
+      bottom: 18px;
+      width: 2px;
+      content: "";
+      background: linear-gradient(180deg, transparent, var(--red), transparent);
+      box-shadow: 0 0 16px rgba(255, 75, 69, 0.78);
+      opacity: 0.74;
+    }
+
+    .section-title {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px;
+      color: var(--blue);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-shadow: 0 0 14px rgba(32, 231, 255, 0.62);
+    }
+
+    .section-title::before {
+      width: 14px;
+      height: 14px;
+      border: 1px solid var(--blue-line);
+      content: "";
+      box-shadow: 0 0 10px rgba(32, 231, 255, 0.66);
+    }
+
+    .drive-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(82px, 1fr));
+      grid-template-areas:
+        "probe-down probe-reset probe-up"
+        ". forward ."
+        "left stop right"
+        ". backward .";
+      gap: 12px;
+      max-width: 620px;
+    }
+
+    button {
+      position: relative;
+      min-height: 74px;
+      border: 1px solid var(--red-line);
+      border-radius: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.1), rgba(255, 75, 69, 0.035)),
+        rgba(3, 5, 12, 0.22);
+      color: #ffb1aa;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 20px rgba(255, 75, 69, 0.08), 0 0 16px rgba(255, 75, 69, 0.13);
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease, transform 80ms ease;
+    }
+
+    button::after {
+      position: absolute;
+      right: 8px;
+      bottom: 7px;
+      width: 22px;
+      height: 2px;
+      content: "";
+      background: var(--red);
+      box-shadow: 0 0 10px rgba(255, 75, 69, 0.78);
+      opacity: 0.88;
+    }
+
+    button:hover {
+      border-color: rgba(255, 128, 118, 0.95);
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.2), rgba(255, 75, 69, 0.06)),
+        rgba(3, 5, 12, 0.28);
+    }
+
+    button:active,
+    button.is-active {
+      transform: translateY(1px);
+      border-color: var(--blue-line);
+      color: #dffbff;
+      background:
+        linear-gradient(90deg, rgba(32, 231, 255, 0.32), rgba(32, 231, 255, 0.1)),
+        rgba(2, 14, 22, 0.38);
+      box-shadow: 0 0 24px rgba(32, 231, 255, 0.42), inset 0 0 24px rgba(32, 231, 255, 0.18);
+    }
+
+    button:active::after,
+    button.is-active::after {
+      background: var(--blue);
+      box-shadow: 0 0 14px rgba(32, 231, 255, 0.92);
+    }
+
+    button.small {
+      min-height: 46px;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    .return-link {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 20;
+      display: inline-grid;
+      place-items: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border: 1px solid var(--red-line);
+      border-radius: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.16), rgba(255, 75, 69, 0.05)),
+        rgba(3, 5, 12, 0.46);
+      color: #ffb1aa;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      text-transform: uppercase;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 80ms ease;
+    }
+
+    .return-link::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 6px;
+      height: 2px;
+      background: rgba(255, 75, 69, 0.62);
+    }
+
+    .return-link:hover {
+      border-color: var(--blue-line);
+      color: #dffbff;
+      background:
+        linear-gradient(90deg, rgba(32, 231, 255, 0.24), rgba(32, 231, 255, 0.08)),
+        rgba(2, 14, 22, 0.5);
+    }
+
+    .return-link:hover::after {
+      background: var(--blue);
+    }
+
+    .return-link:active {
+      transform: translateY(1px);
+    }
+
+    .mode-on {
+      right: 132px;
+    }
+
+    button.danger {
+      border-color: rgba(255, 75, 69, 0.9);
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.22), rgba(255, 75, 69, 0.06)),
+        rgba(19, 4, 7, 0.26);
+      color: #ffd3cf;
+    }
+
+    button.probe {
+      border-color: rgba(255, 222, 116, 0.58);
+      color: #ffe69a;
+      box-shadow: inset 0 0 20px rgba(255, 222, 116, 0.08), 0 0 14px rgba(255, 222, 116, 0.12);
+    }
+
+    .key {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      text-shadow: 0 0 14px currentColor;
+    }
+
+    .label {
+      display: block;
+      margin-top: 8px;
+      color: currentColor;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      opacity: 0.82;
+      text-transform: uppercase;
+    }
+
+    .spacer {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    [data-key="q"] { grid-area: probe-down; }
+    [data-key="r"] { grid-area: probe-reset; }
+    [data-key="e"] { grid-area: probe-up; }
+    [data-key="w"] { grid-area: forward; }
+    [data-key="a"] { grid-area: left; }
+    [data-key="x"] { grid-area: stop; }
+    [data-key="d"] { grid-area: right; }
+    [data-key="s"] { grid-area: backward; }
+
+    .probe-row,
+    .quick-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .side-stack {
+      display: grid;
+      align-self: center;
+      justify-self: end;
+      width: 330px;
+      height: max-content;
+      gap: 14px;
+    }
+
+    .utility-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .utility-row button {
+      min-height: 52px;
+    }
+
+    .readouts {
+      display: grid;
+      gap: 9px;
+    }
+
+    .readout {
+      display: grid;
+      gap: 5px;
+      padding: 9px 12px;
+      border: 1px solid rgba(255, 75, 69, 0.48);
+      border-radius: 0;
+      background: rgba(4, 7, 15, 0.24);
+      box-shadow: inset 0 0 16px rgba(255, 75, 69, 0.08);
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    }
+
+    .readout span:first-child {
+      color: var(--red);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .readout strong {
+      min-height: 24px;
+      color: var(--text);
+      font-size: 22px;
+      line-height: 1.15;
+      word-break: break-word;
+      text-shadow: 0 0 12px rgba(32, 231, 255, 0.16);
+    }
+
+    .ok {
+      color: var(--blue) !important;
+      text-shadow: 0 0 14px rgba(32, 231, 255, 0.68);
+    }
+
+    .bad {
+      color: var(--red) !important;
+      text-shadow: 0 0 14px rgba(255, 75, 69, 0.68);
+    }
+
+    .log {
+      height: 58px;
+      overflow: auto;
+      margin-top: 14px;
+      padding: 10px;
+      border: 1px solid rgba(32, 231, 255, 0.28);
+      border-radius: 0;
+      background: rgba(0, 0, 0, 0.18);
+      color: rgba(214, 252, 255, 0.7);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      box-shadow: inset 0 0 20px rgba(32, 231, 255, 0.08);
+    }
+
+    @media (max-width: 860px) {
+      header,
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .connection {
+        grid-template-columns: 1fr auto;
+      }
+
+      .connection input {
+        grid-column: 1 / -1;
+      }
+
+      body {
+        --bg-y: center;
+        --bg-size: cover;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        padding: 12px;
+      }
+
+      header {
+        padding: 12px;
+      }
+
+      .drive-grid,
+      .probe-row,
+      .quick-row {
+        gap: 8px;
+      }
+
+      button {
+        min-height: 72px;
+      }
+
+      button::after {
+        right: 7px;
+        bottom: 5px;
+        width: 16px;
+      }
+
+      .key {
+        font-size: 20px;
+      }
+
+      .label {
+        font-size: 10px;
+        line-height: 1.15;
+        margin-top: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>EEERover Control</h1>
+        <div class="status-line" id="hint">REMOTE HUD for Group 25</div>
+      </div>
+
+      <div class="connection">
+        <input id="arduinoUrl" value="http://172.20.10.2" spellcheck="false" />
+        <button class="small" id="saveUrl">Save</button>
+        <button class="small" id="ping">Refresh</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <p class="section-title">control options</p>
+        <div class="drive-grid">
+          <button class="probe" data-repeat="probeDown" data-key="q">
+            <span class="key">Q</span>
+            <span class="label">Probe -10</span>
+          </button>
+          <button class="probe" data-once="probeReset" data-key="r">
+            <span class="key">R</span>
+            <span class="label">Probe reset</span>
+          </button>
+          <button class="probe" data-repeat="probeUp" data-key="e">
+            <span class="key">E</span>
+            <span class="label">Probe +10</span>
+          </button>
+
+          <button data-hold="forward" data-release="stopMotor" data-key="w">
+            <span class="key">W</span>
+            <span class="label">Forward</span>
+          </button>
+
+          <button data-hold="left" data-release="center" data-key="a">
+            <span class="key">A</span>
+            <span class="label">Steer Left</span>
+          </button>
+          <button class="danger" data-once="stop" data-key="x">
+            <span class="key">X</span>
+            <span class="label">Stop</span>
+          </button>
+          <button data-hold="right" data-release="center" data-key="d">
+            <span class="key">D</span>
+            <span class="label">Steer Right</span>
+          </button>
+
+          <button data-hold="backward" data-release="stopMotor" data-key="s">
+            <span class="key">S</span>
+            <span class="label">Backward</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="side-stack">
+        <div class="utility-row">
+          <button data-once="on">
+            <span class="key">LED</span>
+            <span class="label">On</span>
+          </button>
+          <button data-once="off">
+            <span class="key">LED</span>
+            <span class="label">Off</span>
+          </button>
+        </div>
+
+        <aside class="panel">
+          <p class="section-title">Rover state</p>
+          <div class="readouts">
+            <div class="readout">
+              <span>Connection</span>
+              <strong id="connection">Connecting...</strong>
+            </div>
+            <div class="readout">
+              <span>Last command</span>
+              <strong id="lastCommand">none</strong>
+            </div>
+            <div class="readout">
+              <span>Motor</span>
+              <strong id="motorState">--</strong>
+            </div>
+            <div class="readout">
+              <span>Steering</span>
+              <strong id="steeringState">--</strong>
+            </div>
+            <div class="readout">
+              <span>Probe angle</span>
+              <strong id="probeState">90</strong>
+            </div>
+          </div>
+          <div class="log" id="log"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <button class="return-link mode-on" id="modeOn" type="button">ON</button>
+  <a class="return-link" href="index.html">Return</a>
+
+  <script>
+    const DEFAULT_URL = "http://172.20.10.2";
+    const urlInput = document.getElementById("arduinoUrl");
+    const connectionEl = document.getElementById("connection");
+    const lastCommandEl = document.getElementById("lastCommand");
+    const motorStateEl = document.getElementById("motorState");
+    const steeringStateEl = document.getElementById("steeringState");
+    const probeStateEl = document.getElementById("probeState");
+    const logEl = document.getElementById("log");
+
+    const holdKeys = {
+      w: { cmd: "forward", release: "stopMotor" },
+      s: { cmd: "backward", release: "stopMotor" },
+      a: { cmd: "left", release: "center" },
+      d: { cmd: "right", release: "center" }
+    };
+
+    const onceKeys = {
+      r: "probeReset",
+      c: "center",
+      x: "stop",
+      " ": "stop"
+    };
+
+    const repeatKeys = {
+      q: "probeDown",
+      e: "probeUp"
+    };
+
+    const activeKeys = new Set();
+    const repeatTimers = new Map();
+    const buttonsByKey = new Map();
+
+    urlInput.value = localStorage.getItem("eee-rover-url") || DEFAULT_URL;
+
+    function baseUrl() {
+      return urlInput.value.trim().replace(/\/+$/, "");
+    }
+
+    function setConnection(text, ok) {
+      connectionEl.textContent = text;
+      connectionEl.className = ok ? "ok" : "bad";
+    }
+
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      logEl.textContent = `[${time}] ${message}\n` + logEl.textContent;
+    }
+
+    async function sendCommand(cmd) {
+      if (!cmd) return null;
+
+      lastCommandEl.textContent = cmd;
+
+      try {
+        const res = await fetch(`${baseUrl()}/${cmd}`, { cache: "no-store" });
+        const text = await res.text();
+        setConnection(res.ok ? "Connected" : "Error", res.ok);
+        log(`${cmd}: ${res.ok ? text : res.status}`);
+        return text;
+      } catch (err) {
+        setConnection("Disconnected", false);
+        log(`${cmd}: ${err.message}`);
+        return null;
+      }
+    }
+
+    async function refreshState() {
+      try {
+        const res = await fetch(`${baseUrl()}/state`, { cache: "no-store" });
+        if (!res.ok) {
+          setConnection("Error", false);
+          return;
+        }
+
+        const state = await res.json();
+        setConnection("Connected", true);
+        motorStateEl.textContent = state.motor ?? "--";
+        steeringStateEl.textContent = state.steering ?? "--";
+        probeStateEl.textContent = state.probe_angle ?? "--";
+      } catch (err) {
+        setConnection("Disconnected", false);
+      }
+    }
+
+    async function activateControlMode() {
+      try {
+        const res = await fetch(`${baseUrl()}/mode/control`, { cache: "no-store" });
+        if (res.ok) log("mode: control");
+      } catch (err) {
+        log(`mode control: ${err.message}`);
+      }
+    }
+
+    function setButtonActive(key, isActive) {
+      const button = buttonsByKey.get(key);
+      if (button) button.classList.toggle("is-active", isActive);
+    }
+
+    function flashButton(key) {
+      const button = buttonsByKey.get(key);
+      if (!button) return;
+
+      button.classList.add("is-active");
+      window.setTimeout(() => {
+        button.classList.remove("is-active");
+      }, 180);
+    }
+
+    function pressHoldKey(key) {
+      if (activeKeys.has(key)) return;
+      activeKeys.add(key);
+      setButtonActive(key, true);
+      sendCommand(holdKeys[key].cmd);
+    }
+
+    function releaseHoldKey(key) {
+      if (!activeKeys.has(key)) return;
+      activeKeys.delete(key);
+      setButtonActive(key, false);
+      sendCommand(holdKeys[key].release);
+    }
+
+    function pressRepeatKey(key) {
+      if (repeatTimers.has(key)) return;
+      setButtonActive(key, true);
+      sendCommand(repeatKeys[key]);
+
+      const timer = setInterval(() => {
+        sendCommand(repeatKeys[key]);
+      }, 100);
+
+      repeatTimers.set(key, timer);
+    }
+
+    function releaseRepeatKey(key) {
+      const timer = repeatTimers.get(key);
+      if (!timer) return;
+
+      clearInterval(timer);
+      repeatTimers.delete(key);
+      setButtonActive(key, false);
+    }
+
+    document.querySelectorAll("[data-key]").forEach((button) => {
+      buttonsByKey.set(button.dataset.key, button);
+    });
+
+    document.querySelectorAll("[data-hold]").forEach((button) => {
+      let isHolding = false;
+      const start = () => {
+        if (isHolding) return;
+        isHolding = true;
+        button.classList.add("is-active");
+        sendCommand(button.dataset.hold);
+      };
+      const stop = () => {
+        if (!isHolding) return;
+        isHolding = false;
+        button.classList.remove("is-active");
+        sendCommand(button.dataset.release);
+      };
+
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        start();
+      });
+      button.addEventListener("pointerup", stop);
+      button.addEventListener("pointercancel", stop);
+      button.addEventListener("lostpointercapture", stop);
+    });
+
+    document.querySelectorAll("[data-repeat]").forEach((button) => {
+      let timer = null;
+
+      const start = () => {
+        if (timer) return;
+        button.classList.add("is-active");
+        sendCommand(button.dataset.repeat);
+
+        timer = setInterval(() => {
+          sendCommand(button.dataset.repeat);
+        }, 100);
+      };
+
+      const stop = () => {
+        if (!timer) return;
+        clearInterval(timer);
+        timer = null;
+        button.classList.remove("is-active");
+      };
+
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        start();
+      });
+      button.addEventListener("pointerup", stop);
+      button.addEventListener("pointercancel", stop);
+      button.addEventListener("lostpointercapture", stop);
+    });
+
+    document.querySelectorAll("[data-once]").forEach((button) => {
+      button.addEventListener("click", () => {
+        button.classList.add("is-active");
+        window.setTimeout(() => {
+          button.classList.remove("is-active");
+        }, 180);
+        sendCommand(button.dataset.once);
+      });
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+
+      if (holdKeys[key]) {
+        event.preventDefault();
+        pressHoldKey(key);
+        return;
+      }
+
+      if (repeatKeys[key]) {
+        event.preventDefault();
+        pressRepeatKey(key);
+        return;
+      }
+
+      if (onceKeys[key]) {
+        event.preventDefault();
+        if (event.repeat) return;
+        flashButton(key);
+        sendCommand(onceKeys[key]);
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const key = event.key.toLowerCase();
+      if (holdKeys[key]) {
+        event.preventDefault();
+        releaseHoldKey(key);
+        return;
+      }
+
+      if (repeatKeys[key]) {
+        event.preventDefault();
+        releaseRepeatKey(key);
+      }
+    });
+
+    window.addEventListener("blur", () => {
+      [...activeKeys].forEach(releaseHoldKey);
+      [...repeatTimers.keys()].forEach(releaseRepeatKey);
+    });
+
+    document.getElementById("saveUrl").addEventListener("click", () => {
+      localStorage.setItem("eee-rover-url", baseUrl());
+      urlInput.value = baseUrl();
+      log(`saved URL ${baseUrl()}`);
+    });
+
+    document.getElementById("ping").addEventListener("click", () => {
+      log(`ping ${baseUrl()}/state`);
+      refreshState();
+    });
+
+    document.getElementById("modeOn").addEventListener("click", () => {
+      activateControlMode().finally(refreshState);
+    });
+
+    setInterval(refreshState, 3000);
+    refreshState();
+  </script>
+</body>
+</html>

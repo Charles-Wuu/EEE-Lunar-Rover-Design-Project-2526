@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EEERover Detect</title>
+
+  <style>
+    :root {
+      --bg: #020305;
+      --panel: rgba(8, 10, 18, 0.72);
+      --panel-deep: rgba(5, 7, 14, 0.88);
+      --red: #ff4b45;
+      --red-soft: rgba(255, 75, 69, 0.18);
+      --red-line: rgba(255, 75, 69, 0.68);
+      --blue: #20e7ff;
+      --blue-soft: rgba(32, 231, 255, 0.24);
+      --blue-line: rgba(32, 231, 255, 0.86);
+      --gold: #ffde74;
+      --green: #42d66b;
+      --text: #f6f7fb;
+      --muted: rgba(246, 247, 251, 0.62);
+      --dark: rgba(0, 0, 0, 0.58);
+      --bg-y: center;
+      --bg-size: cover;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0) 34%, rgba(0, 0, 0, 0.08) 100%),
+        radial-gradient(circle at 50% 34%, rgba(32, 231, 255, 0.08), transparent 30%),
+        url("assets/control_background.png") center var(--bg-y) / var(--bg-size) fixed no-repeat,
+        #030406;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(32, 231, 255, 0.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent);
+      opacity: 0.18;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 0.08) 64%, rgba(0, 0, 0, 0.22) 100%),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 5px);
+      mix-blend-mode: screen;
+      opacity: 0.1;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      min-height: 100vh;
+      padding: 12px 14px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--red-line);
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.34), rgba(78, 12, 23, 0.22), rgba(0, 0, 0, 0.2));
+      box-shadow: 0 0 28px rgba(255, 75, 69, 0.16), inset 0 0 24px rgba(255, 75, 69, 0.05);
+      clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(27px, 4vw, 48px);
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .status-line {
+      margin-top: 8px;
+      color: var(--blue);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(32, 231, 255, 0.62);
+    }
+
+    .connection {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input {
+      height: 46px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 0;
+      background: rgba(21, 23, 30, 0.94);
+      color: var(--text);
+      padding: 0 14px;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.28);
+    }
+
+    input:focus {
+      border-color: var(--blue-line);
+      box-shadow: 0 0 18px rgba(32, 231, 255, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.28);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(390px, 0.82fr);
+      gap: 16px;
+      min-height: calc(100vh - 104px);
+      margin-top: 14px;
+      align-items: start;
+    }
+
+    .left-stack,
+    .right-stack {
+      display: grid;
+      gap: 14px;
+      min-height: 0;
+      align-content: start;
+    }
+
+    .sensor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    .panel {
+      position: relative;
+      border: 1px solid var(--red-line);
+      border-radius: 0;
+      background: #000;
+      padding: 18px;
+      box-shadow: 0 0 26px rgba(255, 75, 69, 0.16), inset 0 0 28px rgba(255, 75, 69, 0.05);
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    }
+
+    .panel::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+    }
+
+    .panel.blue {
+      border-color: var(--blue-line);
+      background: #000;
+      box-shadow: 0 0 26px rgba(32, 231, 255, 0.14), inset 0 0 28px rgba(32, 231, 255, 0.05);
+    }
+
+    .panel.sensor-magnetic {
+      --sensor-color: #ff4b45;
+      background: #000;
+    }
+
+    .panel.sensor-infrared {
+      --sensor-color: #20e7ff;
+      background: #000;
+    }
+
+    .panel.sensor-ultrasound {
+      --sensor-color: #ffde74;
+      background: #000;
+    }
+
+    .panel.sensor-rf {
+      --sensor-color: #b56cff;
+      background: #000;
+    }
+
+    .panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      color: #ffaba5;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .sensor-grid .panel-title {
+      color: var(--sensor-color);
+    }
+
+    .panel.blue .panel-title {
+      color: #adf7ff;
+    }
+
+    .sensor-grid .panel.blue .panel-title {
+      color: var(--sensor-color);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(230px, 0.7fr);
+      gap: 14px;
+      min-height: 170px;
+    }
+
+    .rock-name {
+      min-height: 58px;
+      display: grid;
+      place-items: center start;
+      border: 1px solid rgba(255, 75, 69, 0.48);
+      background: #000;
+      color: #ff726d;
+      padding: 0 16px;
+      font-size: clamp(30px, 4.8vw, 56px);
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .description {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 6px 7px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    th {
+      color: #d8faff;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .metric {
+      display: grid;
+      gap: 11px;
+      align-content: start;
+      min-height: clamp(194px, calc((100vh + 44px) / 4), 270px);
+    }
+
+    .big {
+      color: #ff726d;
+      font-size: clamp(24px, 3vw, 40px);
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .blue .big,
+    .big.blue-text {
+      color: var(--blue);
+    }
+
+    .sensor-infrared .big,
+    .sensor-rf .big {
+      color: var(--sensor-color);
+    }
+
+    .unit {
+      font-size: 0.52em;
+      text-transform: none;
+    }
+
+    .unit sup {
+      position: relative;
+      top: -0.2em;
+      font-size: 0.7em;
+      line-height: 0;
+    }
+
+    .bar {
+      position: relative;
+      height: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255, 75, 69, 0.78), rgba(255, 222, 116, 0.86));
+      transition: width 160ms ease;
+    }
+
+    .blue .bar-fill {
+      background: linear-gradient(90deg, rgba(32, 231, 255, 0.7), rgba(255, 222, 116, 0.72));
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .meta span {
+      display: block;
+      min-height: 24px;
+      margin-top: 6px;
+      border: 1px solid rgba(255, 75, 69, 0.35);
+      background: #000;
+      color: var(--text);
+      padding: 5px 7px;
+      text-transform: none;
+    }
+
+    .blue .meta span {
+      border-color: rgba(32, 231, 255, 0.36);
+    }
+
+    .sensor-infrared .meta span,
+    .sensor-rf .meta span {
+      color: var(--sensor-color);
+    }
+
+    .sensor-infrared .meta span {
+      border-color: rgba(32, 231, 255, 0.45);
+    }
+
+    .sensor-rf .meta span {
+      border-color: rgba(181, 108, 255, 0.45);
+    }
+
+    .meta.meta-two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .meta.meta-one {
+      grid-template-columns: 1fr;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    button,
+    .return-link {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--red-line);
+      border-radius: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 75, 69, 0.16), rgba(255, 75, 69, 0.05)),
+        rgba(3, 5, 12, 0.46);
+      color: #ffb1aa;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 900;
+      text-decoration: none;
+      text-transform: uppercase;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 80ms ease;
+    }
+
+    button::after,
+    .return-link::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 6px;
+      height: 2px;
+      background: rgba(255, 75, 69, 0.62);
+    }
+
+    button:hover,
+    .return-link:hover {
+      border-color: var(--blue-line);
+      color: #dffbff;
+      background:
+        linear-gradient(90deg, rgba(32, 231, 255, 0.24), rgba(32, 231, 255, 0.08)),
+        rgba(2, 14, 22, 0.5);
+    }
+
+    button:hover::after,
+    .return-link:hover::after {
+      background: var(--blue);
+    }
+
+    button:active,
+    .return-link:active {
+      transform: translateY(1px);
+    }
+
+    .connection-status {
+      border: 1px solid rgba(32, 231, 255, 0.3);
+      background: #000;
+      padding: 20px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .connection-status strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 28px;
+      text-transform: none;
+    }
+
+    .connection-status strong.ok {
+      color: var(--green);
+    }
+
+    .connection-status strong.bad {
+      color: var(--red);
+    }
+
+    .history {
+      height: 360px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style-position: inside;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      max-height: calc(100% - 48px);
+      overflow-y: auto;
+      padding-right: 8px;
+      scrollbar-color: rgba(32, 231, 255, 0.72) rgba(0, 0, 0, 0.32);
+    }
+
+    .history-list li {
+      border-bottom: 1px solid rgba(32, 231, 255, 0.18);
+      color: var(--text);
+      padding: 9px 0;
+    }
+
+    .history-line {
+      display: inline-grid;
+      grid-template-columns: minmax(100px, 1fr) auto;
+      gap: 16px;
+      width: calc(100% - 28px);
+      vertical-align: middle;
+    }
+
+    .history-line span:first-child {
+      color: #ffb1aa;
+      text-transform: uppercase;
+    }
+
+    .history-line span:last-child {
+      color: var(--blue);
+      text-align: right;
+    }
+
+    .history-detail {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 10px;
+      margin: 8px 0 2px 28px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.35;
+      text-transform: uppercase;
+    }
+
+    .history-detail span {
+      overflow-wrap: anywhere;
+    }
+
+    .empty-history {
+      margin-top: 18px;
+      color: var(--muted);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .return-link {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 20;
+    }
+
+    .mode-on {
+      right: 132px;
+    }
+
+    @media (max-width: 980px) {
+      header,
+      main,
+      .summary,
+      .sensor-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .connection {
+        grid-template-columns: 1fr auto;
+      }
+
+      .page {
+        padding: 16px;
+      }
+
+      .meta,
+      .connection-status {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .connection,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .return-link {
+        right: 14px;
+        bottom: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <h1>EEERover Detect</h1>
+        <div class="status-line">Rock classifier for Group 25</div>
+      </div>
+
+      <div class="connection">
+        <input id="arduinoUrl" value="http://172.20.10.2" spellcheck="false" />
+        <button id="saveIp" type="button">Save IP</button>
+        <button id="refreshData" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="left-stack">
+        <section class="panel summary">
+          <div>
+            <div class="panel-title">Identified Rock Type</div>
+            <div class="rock-name" id="rockType">UNKNOWN</div>
+            <div class="description" id="rockDesc">
+              Waiting for sensor data. Classification will update automatically from magnetic, infrared, ultrasound and RF readings.
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-title">Classification Table</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Rock</th>
+                  <th>IR</th>
+                  <th>US</th>
+                  <th>Mag</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Basaltoid</td>
+                  <td>547</td>
+                  <td>Present</td>
+                  <td>Down</td>
+                </tr>
+                <tr>
+                  <td>Gravion</td>
+                  <td>312</td>
+                  <td>Absent</td>
+                  <td>Down</td>
+                </tr>
+                <tr>
+                  <td>Regolix</td>
+                  <td>312</td>
+                  <td>Present</td>
+                  <td>Up</td>
+                </tr>
+                <tr>
+                  <td>Lunarite</td>
+                  <td>547</td>
+                  <td>Absent</td>
+                  <td>Up</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="sensor-grid">
+          <div class="panel metric sensor-magnetic">
+            <div class="panel-title">Magnetic</div>
+            <div class="big" id="magPolarity">UNKNOWN</div>
+            <div class="bar"><div class="bar-fill" id="magBar"></div></div>
+            <div class="meta">
+              <div>Raw ADC<span id="magRaw">512</span></div>
+              <div>Voltage<span id="magVoltage">1.65 V</span></div>
+              <div>Direction<span id="magDirection">--</span></div>
+            </div>
+          </div>
+
+          <div class="panel metric blue sensor-infrared">
+            <div class="panel-title">Infrared</div>
+            <div class="big blue-text"><span id="irLambda">--</span> <span class="unit">s<sup>-1</sup></span></div>
+            <div class="bar"><div class="bar-fill" id="irBar"></div></div>
+            <div class="meta meta-two">
+              <div>Pulse Count<span id="irCount">--</span></div>
+              <div>Class<span id="irClass">--</span></div>
+            </div>
+          </div>
+
+          <div class="panel metric sensor-ultrasound">
+            <div class="panel-title">Ultrasound</div>
+            <div class="big" id="usDetected">ABSENT</div>
+            <div class="meta meta-one">
+              <div>Signal Frequency<span>40 kHz</span></div>
+            </div>
+          </div>
+
+          <div class="panel metric blue sensor-rf">
+            <div class="panel-title">Radio Frequency</div>
+            <div class="big blue-text" id="rfAge">--</div>
+            <div class="meta">
+              <div>Raw Packet<span id="rfPacket">--</span></div>
+              <div>Carrier<span>89 kHz ASK</span></div>
+              <div>Baud<span>600 UART</span></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="right-stack">
+        <div class="actions">
+          <button id="saveHistory" type="button">Save</button>
+          <button id="deleteHistory" type="button">Delete</button>
+          <button id="clearHistory" type="button">Clear</button>
+        </div>
+
+        <section class="panel blue">
+          <div class="panel-title">Connection</div>
+          <div class="connection-status">
+            Status
+            <strong id="connection">Connecting...</strong>
+          </div>
+        </section>
+
+        <section class="panel blue history">
+          <div class="panel-title">Detect History</div>
+          <ol class="history-list" id="historyList"></ol>
+          <div class="empty-history" id="emptyHistory">No saved rocks yet</div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <button class="return-link mode-on" id="modeOn" type="button">ON</button>
+  <a class="return-link" href="index.html">Return</a>
+
+  <script>
+    const DEFAULT_URL = "http://172.20.10.2";
+    const URL_KEY = "eee-rover-detect-url";
+    const HISTORY_KEY = "eee-rover-detect-history";
+
+    const descriptions = {
+      Basaltoid: "High infrared activity, ultrasound present, and downward magnetic field. Dense basalt-like rock classification.",
+      Gravion: "Low radioactivity, no ultrasound response, and downward magnetic field. Dense granular rock structure.",
+      Regolix: "Low infrared activity, ultrasound present, and upward magnetic field. Regolith-like material classification.",
+      Lunarite: "High infrared activity, no ultrasound response, and upward magnetic field. Lunarite rock classification.",
+      unknown: "Waiting for a valid combination of magnetic, infrared and ultrasound data."
+    };
+
+    const urlInput = document.getElementById("arduinoUrl");
+    const historyList = document.getElementById("historyList");
+    const emptyHistory = document.getElementById("emptyHistory");
+    const currentRock = {
+      type: "UNKNOWN",
+      age: "--",
+      sensors: null
+    };
+
+    let history = loadHistory();
+
+    urlInput.value = localStorage.getItem(URL_KEY) || DEFAULT_URL;
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function clamp(x, min, max) {
+      return Math.max(min, Math.min(max, x));
+    }
+
+    const MAG_UNKNOWN_CENTER_V = 2.34;
+    const MAG_UNKNOWN_HALF_WIDTH_V = 0.16;
+    const MAG_THRESHOLD_LOW = MAG_UNKNOWN_CENTER_V - MAG_UNKNOWN_HALF_WIDTH_V;
+    const MAG_THRESHOLD_HIGH = MAG_UNKNOWN_CENTER_V + MAG_UNKNOWN_HALF_WIDTH_V;
+
+    function normaliseMagPolarity(voltage, fallback) {
+      const value = Number(voltage);
+      if (!Number.isFinite(value)) return fallback || "unknown";
+      if (value > MAG_THRESHOLD_HIGH) return "up";
+      if (value < MAG_THRESHOLD_LOW) return "down";
+      return "unknown";
+    }
+
+    function magBarPercent(voltage) {
+      const value = Number(voltage);
+      if (!Number.isFinite(value)) return 50;
+      return clamp(
+        ((value - MAG_THRESHOLD_LOW) / (MAG_THRESHOLD_HIGH - MAG_THRESHOLD_LOW)) * 100,
+        0,
+        100
+      );
+    }
+
+    function inferRockFromMagUs(polarity, usDetected) {
+      if (polarity === "down" && usDetected) return "Basaltoid";
+      if (polarity === "down" && !usDetected) return "Gravion";
+      if (polarity === "up" && usDetected) return "Regolix";
+      if (polarity === "up" && !usDetected) return "Lunarite";
+      return null;
+    }
+
+    function resolveRockType(normalRockType, polarity, usDetected, lambda) {
+      const irAvailable = Number(lambda) > 0;
+
+      if (!irAvailable) {
+        const inferred = inferRockFromMagUs(polarity, usDetected);
+        if (inferred) {
+          return {
+            key: inferred,
+            label: `${inferred.toUpperCase()}*`,
+            inferred: true
+          };
+        }
+      }
+
+      const key = normalRockType || "unknown";
+      return {
+        key,
+        label: key.toUpperCase(),
+        inferred: false
+      };
+    }
+
+    function baseUrl() {
+      return urlInput.value.trim().replace(/\/+$/, "") || DEFAULT_URL;
+    }
+
+    function loadHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function persistHistory() {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function syncHistoryHeight() {
+      const sensorGrid = document.querySelector(".sensor-grid");
+      const historyPanel = document.querySelector(".history");
+      if (!sensorGrid || !historyPanel) return;
+
+      const sensorBottom = sensorGrid.getBoundingClientRect().bottom;
+      const historyTop = historyPanel.getBoundingClientRect().top;
+      const nextHeight = Math.max(220, Math.round(sensorBottom - historyTop));
+
+      historyPanel.style.height = `${nextHeight}px`;
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = "";
+      emptyHistory.hidden = history.length > 0;
+
+      history.forEach((item) => {
+        const li = document.createElement("li");
+        const line = document.createElement("span");
+        const type = document.createElement("span");
+        const age = document.createElement("span");
+
+        line.className = "history-line";
+        type.textContent = item.type;
+        age.textContent = `Age: ${item.age}`;
+
+        line.append(type, age);
+        li.append(line);
+
+        const detail = document.createElement("div");
+        detail.className = "history-detail";
+
+        const rows = item.sensors
+          ? [
+              `MAG ${item.sensors.mag || "--"}`,
+              `IR ${item.sensors.ir || "--"}`,
+              `US ${item.sensors.us || "--"}`,
+              `RF ${item.sensors.rf || "--"}`
+            ]
+          : ["OLD RECORD - NO SENSOR SNAPSHOT"];
+
+        rows.forEach((row) => {
+          const span = document.createElement("span");
+          span.textContent = row;
+          detail.append(span);
+        });
+
+        li.append(detail);
+
+        historyList.append(li);
+      });
+
+      syncHistoryHeight();
+    }
+
+    function readVisibleSensorSnapshot() {
+      return {
+        mag: document.getElementById("magDirection").textContent,
+        ir: document.getElementById("irLambda").textContent,
+        us: document.getElementById("usDetected").textContent,
+        rf: document.getElementById("rfAge").textContent
+      };
+    }
+
+    function saveCurrentRock() {
+      const visibleType = document.getElementById("rockType").textContent.trim() || "UNKNOWN";
+      const visibleAge = document.getElementById("rfAge").textContent.trim() || "--";
+
+      history.push({
+        type: visibleType,
+        age: visibleAge,
+        sensors: readVisibleSensorSnapshot()
+      });
+      persistHistory();
+      renderHistory();
+    }
+
+    function deleteLastRock() {
+      history.pop();
+      persistHistory();
+      renderHistory();
+    }
+
+    function clearHistory() {
+      history = [];
+      persistHistory();
+      renderHistory();
+    }
+
+    function normaliseRf(rf) {
+      const rawPacket = String(rf.packet || "NO SIGNAL").trim() || "NO SIGNAL";
+      const lowerPacket = rawPacket.toLowerCase();
+      const status = String(rf.status || "").trim();
+      const noSignal = status === "no_signal" || lowerPacket === "no signal" || rawPacket === "--";
+
+      if (noSignal) {
+        return {
+          packet: "NO SIGNAL",
+          noSignal: true
+        };
+      }
+
+      if (/^\d{3}$/.test(rawPacket)) {
+        return {
+          packet: rawPacket,
+          noSignal: false
+        };
+      }
+
+      return {
+        packet: "NO SIGNAL",
+        noSignal: true
+      };
+    }
+
+    async function fetchData() {
+      try {
+        const res = await fetch(`${baseUrl()}/data`);
+        const data = await res.json();
+
+        const mag = data.mag || {};
+        const raw = mag.raw ?? 512;
+        const voltage = mag.voltage ?? 1.65;
+        const polarity = normaliseMagPolarity(voltage, mag.polarity || "unknown");
+
+        setText("magRaw", raw);
+        setText("magVoltage", Number(voltage).toFixed(2) + " V");
+        setText("magPolarity", polarity.toUpperCase());
+        setText("magDirection", polarity);
+
+        document.getElementById("magBar").style.width =
+          magBarPercent(voltage) + "%";
+
+        const ir = data.ir || {};
+        const lambda = ir.lambda_val ?? 0;
+        const count = ir.count ?? "--";
+        const irClass = ir.ir_class || "--";
+
+        setText("irLambda", lambda ? Number(lambda).toFixed(1) : "--");
+        setText("irCount", count);
+        setText("irClass", irClass.toUpperCase());
+
+        document.getElementById("irBar").style.width =
+          clamp(lambda / 700 * 100, 0, 100) + "%";
+
+        const us = data.us || {};
+        const usOn = !!us.detected;
+
+        setText("usDetected", usOn ? "PRESENT" : "ABSENT");
+
+        const rf = normaliseRf(data.rf || {});
+        const rfDisplay = rf.noSignal ? "NO SIGNAL" : rf.packet;
+
+        setText("rfPacket", rf.packet);
+        setText("rfAge", rfDisplay);
+
+        const rock = resolveRockType(data.rock_type || "unknown", polarity, usOn, lambda);
+        const baseDescription = descriptions[rock.key] || descriptions.unknown;
+        const inferredNote = rock.inferred ? " * Inferred from magnetic and ultrasound because infrared is unavailable." : "";
+
+        setText("rockType", rock.label);
+        setText("rockDesc", baseDescription + inferredNote);
+        currentRock.type = rock.label;
+        currentRock.age = rfDisplay;
+        currentRock.sensors = {
+          mag: `${polarity.toUpperCase()} / ${Number(voltage).toFixed(2)}V / ADC ${raw}`,
+          ir: `${lambda ? Number(lambda).toFixed(1) + " s^-1" : "--"} / COUNT ${count} / ${String(irClass).toUpperCase()}`,
+          us: usOn ? "PRESENT / 40 kHz" : "ABSENT / 40 kHz",
+          rf: `${rfDisplay} / 89 kHz ASK / 600 UART`
+        };
+
+        const connection = document.getElementById("connection");
+        connection.textContent = "Connected";
+        connection.className = "ok";
+      } catch (err) {
+        const connection = document.getElementById("connection");
+        connection.textContent = "Disconnected";
+        connection.className = "bad";
+      }
+    }
+
+    async function activateDetectMode() {
+      try {
+        await fetch(`${baseUrl()}/mode/detect`, { cache: "no-store" });
+      } catch (err) {
+        // Older sketches do not have mode endpoints; /data still works there.
+      }
+    }
+
+    document.getElementById("saveIp").addEventListener("click", () => {
+      localStorage.setItem(URL_KEY, baseUrl());
+      urlInput.value = baseUrl();
+    });
+
+    document.getElementById("refreshData").addEventListener("click", fetchData);
+    document.getElementById("modeOn").addEventListener("click", () => {
+      activateDetectMode().finally(fetchData);
+    });
+    document.getElementById("saveHistory").addEventListener("click", saveCurrentRock);
+    document.getElementById("deleteHistory").addEventListener("click", deleteLastRock);
+    document.getElementById("clearHistory").addEventListener("click", clearHistory);
+
+    window.addEventListener("keydown", (event) => {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (activeTag === "input" || activeTag === "textarea") return;
+
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        saveCurrentRock();
+      }
+
+      if (event.key === "Delete" || event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        deleteLastRock();
+      }
+
+      if (event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        clearHistory();
+      }
+    });
+
+    window.addEventListener("resize", syncHistoryHeight);
+
+    renderHistory();
+    fetchData();
+    requestAnimationFrame(syncHistoryHeight);
+    setInterval(fetchData, 500);
+  </script>
+</body>
+</html>

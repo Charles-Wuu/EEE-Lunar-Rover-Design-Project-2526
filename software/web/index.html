@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EEE Rover Control</title>
+  <style>
+    :root {
+      --red: #ff554c;
+      --red-line: rgba(255, 85, 76, 0.88);
+      --red-soft: rgba(255, 85, 76, 0.16);
+      --blue: #35e7ff;
+      --blue-line: rgba(53, 231, 255, 0.88);
+      --blue-soft: rgba(53, 231, 255, 0.16);
+      --text: #fff3f0;
+      --muted: rgba(255, 224, 220, 0.76);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.04), transparent 42%, rgba(0, 0, 0, 0.1)),
+        url("assets/control_background.png") center / cover no-repeat,
+        #020305;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 5px),
+        linear-gradient(90deg, rgba(255, 85, 76, 0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(53, 231, 255, 0.026) 1px, transparent 1px);
+      background-size: auto, 40px 40px, 40px 40px;
+      opacity: 0.38;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+      padding: clamp(18px, 3vw, 42px);
+      gap: clamp(28px, 5vh, 72px);
+    }
+
+    .topbar {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-height: 58px;
+      width: 100%;
+      padding: 16px 28px;
+      border: 2px solid rgba(255, 85, 76, 0.72);
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 85, 76, 0.12) 0 1px, transparent 1px 16px),
+        repeating-linear-gradient(180deg, rgba(255, 85, 76, 0.08) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.36), rgba(80, 12, 20, 0.22), rgba(0, 0, 0, 0.18));
+      clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
+    }
+
+    .topbar::before,
+    .topbar::after {
+      position: absolute;
+      content: "";
+      pointer-events: none;
+    }
+
+    .topbar::before {
+      inset: 8px;
+      border: 1px solid rgba(255, 85, 76, 0.42);
+      background:
+        linear-gradient(var(--red-line), var(--red-line)) left top / 28% 1px no-repeat,
+        linear-gradient(var(--red-line), var(--red-line)) right bottom / 28% 1px no-repeat,
+        repeating-linear-gradient(90deg, rgba(255, 85, 76, 0.8) 0 9px, transparent 9px 15px) right 12px center / 86px 8px no-repeat;
+      clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+    }
+
+    .topbar::after {
+      left: 18px;
+      right: 18px;
+      bottom: 6px;
+      height: 1px;
+      background: repeating-linear-gradient(90deg, rgba(255, 85, 76, 0.8) 0 10px, transparent 10px 18px);
+      opacity: 0.62;
+    }
+
+    h1 {
+      margin: 0;
+      color: #fff;
+      font-size: clamp(28px, 3.8vw, 56px);
+      font-weight: 850;
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: nowrap;
+      text-transform: uppercase;
+      text-shadow: none;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(30px, 5vw, 86px);
+      align-items: stretch;
+      min-height: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .choice {
+      position: relative;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      min-height: clamp(460px, 72vh, 740px);
+      padding: clamp(34px, 5vw, 76px);
+      border: 2px solid var(--red-line);
+      color: var(--red);
+      text-align: center;
+      text-decoration: none;
+      background:
+        linear-gradient(180deg, rgba(255, 85, 76, 0.08), rgba(35, 4, 8, 0.3) 42%, rgba(5, 5, 12, 0.34)),
+        rgba(0, 0, 0, 0.05);
+      box-shadow: inset 0 0 42px rgba(255, 85, 76, 0.08);
+      clip-path: polygon(34px 0, calc(100% - 34px) 0, 100% 34px, 100% calc(100% - 34px), calc(100% - 34px) 100%, 34px 100%, 0 calc(100% - 34px), 0 34px);
+      transition: transform 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    .choice::before {
+      position: absolute;
+      inset: 14px;
+      content: "";
+      border: 1px solid rgba(255, 85, 76, 0.36);
+      background:
+        repeating-linear-gradient(180deg, rgba(255, 85, 76, 0.1) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, rgba(255, 85, 76, 0.3), transparent 16%, transparent 84%, rgba(255, 85, 76, 0.3));
+      clip-path: polygon(30px 0, calc(100% - 30px) 0, 100% 30px, 100% calc(100% - 30px), calc(100% - 30px) 100%, 30px 100%, 0 calc(100% - 30px), 0 30px);
+      pointer-events: none;
+      opacity: 0.62;
+    }
+
+    .choice::after {
+      position: absolute;
+      right: 32px;
+      bottom: 24px;
+      left: 32px;
+      height: 18px;
+      content: "";
+      background:
+        linear-gradient(var(--red-line), var(--red-line)) left top / 34% 1px no-repeat,
+        linear-gradient(var(--red-line), var(--red-line)) right bottom / 34% 1px no-repeat,
+        repeating-linear-gradient(90deg, var(--red-line) 0 8px, transparent 8px 14px) left bottom / 118px 8px no-repeat;
+      pointer-events: none;
+      opacity: 0.82;
+    }
+
+    .choice.detect {
+      border-color: color-mix(in srgb, var(--red-line) 62%, var(--blue-line));
+      box-shadow: inset 0 0 42px rgba(255, 85, 76, 0.08);
+    }
+
+    .choice.detect::before {
+      border-right-color: var(--blue-line);
+      background:
+        repeating-linear-gradient(180deg, rgba(255, 85, 76, 0.1) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, rgba(255, 85, 76, 0.26), transparent 18%, transparent 82%, rgba(53, 231, 255, 0.34));
+    }
+
+    .choice.detect::after {
+      background:
+        linear-gradient(var(--red-line), var(--red-line)) left top / 34% 1px no-repeat,
+        linear-gradient(var(--blue-line), var(--blue-line)) right bottom / 34% 1px no-repeat,
+        repeating-linear-gradient(90deg, var(--blue-line) 0 8px, transparent 8px 14px) right bottom / 118px 8px no-repeat;
+    }
+
+    .choice:hover,
+    .choice:focus-visible {
+      transform: translateY(-3px);
+      color: #dffbff;
+      border-color: var(--blue-line);
+      outline: none;
+      background:
+        linear-gradient(180deg, rgba(53, 231, 255, 0.1), rgba(3, 16, 24, 0.3) 42%, rgba(5, 8, 14, 0.36)),
+        rgba(0, 0, 0, 0.05);
+      box-shadow: inset 0 0 42px rgba(53, 231, 255, 0.1);
+    }
+
+    .title {
+      display: block;
+      width: 100%;
+      color: currentColor;
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: clamp(86px, 11vw, 170px);
+      font-weight: 900;
+      line-height: 0.88;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      text-shadow: none;
+      white-space: nowrap;
+    }
+
+    .foreground-people {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: url("assets/people_foreground.png") center / cover no-repeat;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      .page {
+        padding: 12px;
+        gap: 14px;
+      }
+
+      .topbar {
+        min-height: 0;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .choice {
+        min-height: 330px;
+      }
+
+      .title {
+        font-size: clamp(64px, 19vw, 108px);
+      }
+
+      .foreground-people {
+        background-size: cover;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <h1>EEEROVER WEBPAGE</h1>
+    </header>
+
+    <main>
+      <a class="choice control" href="control.html">
+        <span class="title">Control</span>
+      </a>
+
+      <a class="choice detect" href="detect.html">
+        <span class="title">Detect</span>
+      </a>
+    </main>
+    <div class="foreground-people" aria-hidden="true"></div>
+  </div>
+</body>
+</html>
