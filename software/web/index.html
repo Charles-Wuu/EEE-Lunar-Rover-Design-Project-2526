@@ -30,7 +30,8 @@
 
     body {
       min-height: 100vh;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
       background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.04), transparent 42%, rgba(0, 0, 0, 0.1)),
         url("assets/control_background.png") center / cover no-repeat,
@@ -54,10 +55,11 @@
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
       min-height: 100vh;
-      padding: clamp(18px, 3vw, 42px);
-      gap: clamp(28px, 5vh, 72px);
+      min-height: 100dvh;
+      padding: clamp(12px, 2.2vw, 32px);
+      gap: clamp(14px, 3vh, 38px);
     }
 
     .topbar {
@@ -66,7 +68,7 @@
       align-items: center;
       min-height: 58px;
       width: 100%;
-      padding: 16px 28px;
+      padding: clamp(12px, 1.6vw, 18px) clamp(18px, 2.4vw, 28px);
       border: 2px solid rgba(255, 85, 76, 0.72);
       background:
         repeating-linear-gradient(90deg, rgba(255, 85, 76, 0.12) 0 1px, transparent 1px 16px),
@@ -108,7 +110,7 @@
       font-weight: 850;
       line-height: 1;
       letter-spacing: 0;
-      white-space: nowrap;
+      white-space: normal;
       text-transform: uppercase;
       text-shadow: none;
     }
@@ -119,6 +121,7 @@
       gap: clamp(30px, 5vw, 86px);
       align-items: stretch;
       min-height: 0;
+      height: 100%;
       position: relative;
       z-index: 2;
     }
@@ -128,8 +131,9 @@
       display: grid;
       align-content: center;
       justify-items: center;
-      min-height: clamp(460px, 72vh, 740px);
-      padding: clamp(34px, 5vw, 76px);
+      min-height: 0;
+      height: 100%;
+      padding: clamp(24px, 4vw, 64px);
       border: 2px solid var(--red-line);
       color: var(--red);
       text-align: center;
@@ -206,7 +210,7 @@
       width: 100%;
       color: currentColor;
       font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-      font-size: clamp(86px, 11vw, 170px);
+      font-size: clamp(64px, min(10vw, 18vh), 160px);
       font-weight: 900;
       line-height: 0.88;
       letter-spacing: 0.03em;
@@ -224,13 +228,10 @@
     }
 
     @media (max-width: 860px) {
-      body {
-        overflow: auto;
-      }
-
       .page {
         padding: 12px;
         gap: 14px;
+        height: auto;
       }
 
       .topbar {
@@ -243,15 +244,31 @@
       }
 
       .choice {
-        min-height: 330px;
+        min-height: 280px;
+        height: auto;
       }
 
       .title {
-        font-size: clamp(64px, 19vw, 108px);
+        font-size: clamp(56px, 18vw, 108px);
       }
 
       .foreground-people {
         background-size: cover;
+      }
+    }
+
+    @media (min-width: 861px) and (max-height: 760px) {
+      .page {
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      .topbar {
+        min-height: 0;
+      }
+
+      .title {
+        font-size: clamp(54px, min(9vw, 16vh), 132px);
       }
     }
   </style>
