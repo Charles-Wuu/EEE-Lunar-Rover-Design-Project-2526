@@ -16,6 +16,8 @@ Figure 2 shows the final rover structure designed by the group. It uses a
 unique steering system and is implemented entirely with 3D-printed parts. The
 design inspiration and prototype reference came from the open-source PYPER2
 project by Tim Hanewich: [TimHanewich/PYPER2](https://github.com/TimHanewich/PYPER2).
+It is an incredible piece of work, and we would like to thank Tim Hanewich for
+sharing it.
 
 ![Final 3D-printed rover structure](assets/final_3d_printed_structure.png)
 
