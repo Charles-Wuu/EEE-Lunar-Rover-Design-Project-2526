@@ -1,10 +1,8 @@
 # EEE Lunar Rover Project 2026 - Group 25
 
-## Good news!
-
-Our work was selected by the Department of EEE for the Best First Year Project
-2026 prize, recognising the dedication and hard work of the whole team.
-Congratulations to everyone involved.
+**Good news! Our work was selected by the Department of EEE for the Best First
+Year Project 2026 prize, recognising the dedication and hard work of the whole
+team. Congratulations to everyone involved.**
 
 This repository contains the organised software, firmware, CAD, presentation,
 and final report materials for the Group 25 ELEC40006 summer rover project.
